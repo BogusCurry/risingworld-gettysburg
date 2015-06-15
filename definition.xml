@@ -1,0 +1,9 @@
+<Lua-Script>
+  <Name>Gettysburg</Name>
+  <Description>Gettysburg Supreme Management</Description>
+  <File>gettysburg.lua</File>
+  <Author>Getler</Author>
+  <Team>Gettysburg</Team>
+  <Website>https://github.com/Getty/risingworld-gettysburg</Website>
+  <License>GPL</License>
+</Lua-Script>
