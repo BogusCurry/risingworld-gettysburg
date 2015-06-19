@@ -1,20 +1,23 @@
 
 addEvent("PlayerConnect", function(event)
-  gbInitGui(event.player);
+  gbInitPlayerGui(event.player)
 end)
 
 addEvent("PlayerSpawn", function(event)
-  sendWelcomeMessage(event.player);
+  sendWelcomeMessage(event.player)
 end)
 
 addEvent("PlayerChangePosition", function(event)
 
-  local chunkPos = Vector3i.new();
-  local blockPos = Vector3i.new();
-  local pos = event.position;
-  ChunkUtils:getChunkAndBlockPosition(pos, chunkPos, blockPos);
+  local player = event.player
+  local chunkPos = Vector3i.new()
+  local blockPos = Vector3i.new()
 
-  setSubLabel(event.player,
+  ChunkUtils:getChunkAndBlockPosition(event.position, chunkPos, blockPos)
+
+  player:setAttribute("chunkPos", chunkPos)
+  player:setAttribute("blockPos", blockPos)
+  player:getAttribute("posLabel"):setText(
     "[" .. chunkPos.x .. "/" .. chunkPos.y .. "/" .. chunkPos.z .. "] " ..
     "[" .. blockPos.x .. "/" .. blockPos.y .. "/" .. blockPos.z .. "]"
   );
@@ -47,3 +50,4 @@ end);
 --   end
 
 -- );
+-- 

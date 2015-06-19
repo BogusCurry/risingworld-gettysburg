@@ -1,53 +1,35 @@
-local javaDriverManager     = luajava.bindClass("java.sql.DriverManager");
-local javaPreparedStatement = luajava.bindClass("java.sql.PreparedStatement");
-local javaResultSet         = luajava.bindClass("java.sql.ResultSet");
-local serverDB;
+javaDriverManager     = luajava.bindClass("java.sql.DriverManager")
+javaPreparedStatement = luajava.bindClass("java.sql.PreparedStatement")
+javaResultSet         = luajava.bindClass("java.sql.ResultSet")
 
 -- Init Gettysburg Database
 function gbInitDb()
 
-  if serverConfig['database_type'] ~= "mysql" then
-    error("Must be MySQL database");
+  if serverConfig.database_type ~= "mysql" then
+    error("Must be MySQL database")
   end
 
-  local mysqlHost = serverConfig['database_mysql_server_ip'];
+  local mysqlHost = serverConfig.database_mysql_server_ip or "localhost";
+  local mysqlPort = serverConfig.database_mysql_server_port or 3306;
+  local mysqlDB = serverConfig.database_mysql_database or "";
+  local mysqlUser = serverConfig.database_mysql_user or "";
 
-  if ( mysqlHost == nil or mysqlHost == "" ) then
-    mysqlHost = "localhost"
-  end
+  local dsn = "jdbc:mysql://" .. mysqlHost .. ":" .. mysqlPort .. "/" .. mysqlDB
 
-  local mysqlPort = serverConfig['database_mysql_server_port'];
-
-  if ( mysqlPort == nil or mysqlPort == "" ) then
-    mysqlPort = 3306
-  end
-
-  local mysqlDB = serverConfig['database_mysql_database'];
-  local mysqlUser = serverConfig['database_mysql_user'];
-
-  if mysqlUser == nil then
-    mysqlUser = ""
-  end
-
-  local mysqlPass = serverConfig['database_mysql_password'];
-
-  if mysqlPass == nil then
-    mysqlPass = ""
-  end
-
-  local dsn = "jdbc:mysql://" .. mysqlHost .. ":" .. mysqlPort .. "/" .. mysqlDB;
-
-  serverLog("Connecting to " .. dsn);
+  serverLog("Connecting to " .. dsn)
 
   serverDB = assert(
     javaDriverManager:getConnection(dsn, mysqlUser, mysqlPass),
     "CANT CONNECT TO MYSQL DATABASE"
-  );
+  )
 
-  serverLog("Init database, if necessary...");
+  serverLog("Init database, if necessary...")
 
 --[[
 
+DROP TABLE Billboards;
+DROP TABLE StreetBlocks;
+DROP TABLE Streets;
 DROP TABLE FoodHistory;
 DROP TABLE ItemHistory;
 DROP TABLE BlockHistory;
@@ -58,13 +40,14 @@ DROP TABLE Realms;
 ]]--
 
   gbRawUpdateQuery([[
-    CREATE TABLE IF NOT EXISTS `Markers` (
+    CREATE TABLE IF NOT EXISTS `Billboards` (
       id              INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-      x               INT,
-      y               INT,
-      z               INT
+      content         TEXT,
+      x               INT NOT NULL,
+      y               INT NOT NULL,
+      z               INT NOT NULL
     );
-  ]]);
+  ]])
 
   gbRawUpdateQuery([[
     CREATE TABLE IF NOT EXISTS `Streets` (
@@ -72,7 +55,7 @@ DROP TABLE Realms;
       name            VARCHAR(40),
       created         TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
-  ]]);
+  ]])
 
   gbRawUpdateQuery([[
     CREATE TABLE IF NOT EXISTS `StreetBlocks` (
@@ -92,9 +75,9 @@ DROP TABLE Realms;
       end_block_y     INT NOT NULL,
       end_block_z     INT NOT NULL,
       created         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (streets_id) REFERENCES Streets(id) ON DELETE CASCADE ON UPDATE CASCADE,
+      FOREIGN KEY (streets_id) REFERENCES Streets(id) ON DELETE CASCADE ON UPDATE CASCADE
     );
-  ]]);
+  ]])
 
   gbRawUpdateQuery([[
     CREATE TABLE IF NOT EXISTS `Realms` (
@@ -109,7 +92,7 @@ DROP TABLE Realms;
       FOREIGN KEY (founder_id) REFERENCES Player(id) ON DELETE SET NULL,
       FOREIGN KEY (mayor_id) REFERENCES Player(id) ON DELETE SET NULL
     );
-  ]]);
+  ]])
 
   gbRawUpdateQuery([[
     CREATE TABLE IF NOT EXISTS `RealmChunks` (
@@ -123,11 +106,11 @@ DROP TABLE Realms;
       FOREIGN KEY (realms_id) REFERENCES Realms(id) ON DELETE CASCADE ON UPDATE CASCADE,
       CONSTRAINT coordinates UNIQUE (x,z)
     );
-  ]]);
+  ]])
 
   gbRawUpdateQuery([[
     CREATE TABLE IF NOT EXISTS `RealmCitizens` (
-      id              INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      id              INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
       realms_id       INT UNSIGNED NOT NULL,
       citizen_id      INT,
       joined          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -135,11 +118,11 @@ DROP TABLE Realms;
       FOREIGN KEY (realms_id) REFERENCES Realms(id) ON DELETE CASCADE ON UPDATE CASCADE,
       CONSTRAINT population UNIQUE (realms_id,citizen_id)
     );
-  ]]);
+  ]])
 
   gbRawUpdateQuery([[
     CREATE TABLE IF NOT EXISTS `FoodHistory` (
-      id              INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      id              INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
       realms_id       INT UNSIGNED,
       food_type       INT NOT NULL,
       food_value      INT NOT NULL,
@@ -148,44 +131,57 @@ DROP TABLE Realms;
       FOREIGN KEY (player_id) REFERENCES Player(id) ON DELETE CASCADE ON UPDATE CASCADE,
       FOREIGN KEY (realms_id) REFERENCES Realms(id) ON DELETE SET NULL
     );
-  ]]);
+  ]])
 
   gbRawUpdateQuery([[
     CREATE TABLE IF NOT EXISTS `ItemHistory` (
-      id              INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      id              INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
       realms_id       INT UNSIGNED,
       item_type_id    SMALLINT NOT NULL,
       texture_id      INT,
       destroyed       TINYINT UNSIGNED DEFAULT 0,
       player_id       INT NOT NULL,
-      produced        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      created         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (player_id) REFERENCES Player(id) ON DELETE CASCADE ON UPDATE CASCADE,
       FOREIGN KEY (realms_id) REFERENCES Realms(id) ON DELETE SET NULL
     );
-  ]]);
+  ]])
 
   gbRawUpdateQuery([[
     CREATE TABLE IF NOT EXISTS `BlockHistory` (
-      id              INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      id              INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
       realms_id       INT UNSIGNED,
       blockid         INT UNSIGNED,
       destroyed       TINYINT UNSIGNED DEFAULT 0,
       player_id       INT NOT NULL,
-      produced        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      created         TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (player_id) REFERENCES Player(id) ON DELETE CASCADE ON UPDATE CASCADE,
       FOREIGN KEY (realms_id) REFERENCES Realms(id) ON DELETE SET NULL
     );
-  ]]);
+  ]])
 
 end
 
 function gbRawUpdateQuery(sql)
-  local stmt = serverDB:prepareStatement(sql);
-  return stmt:executeUpdate();
+  local stmt = serverDB:prepareStatement(sql)
+  return stmt:executeUpdate()
 end
 
-  -- local stmt = serverDB:prepareStatement("SELECT `key`, `value` FROM WorldInfos");
-  -- local rs = stmt:executeQuery();
+function insertRealm(player)
+  database:queryupdate([[
+    INSERT INTO realms ('creator_id')
+      VALUES (']] .. player:getDBID() .. [[');
+  ]])
+  return database:getLastInsertID()
+end
+
+function loadBillboards()
+  local stmt = serverDB:prepareStatement([[
+    SELECT * FROM Billboards
+  ]])
+  return stmt:executeQuery()
+end
+
 
   -- serverLog("Loading WorldInfos...");
 

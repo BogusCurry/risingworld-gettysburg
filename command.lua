@@ -1,17 +1,27 @@
 
 addEvent("PlayerCommand", function(event)
 
-  -- Split the command string
-  local cmd = StringUtils:explode(event.command, " ");
-  
-  if #cmd >= 1 then
-    cmd[1] = string.lower(cmd[1]);
+  local player = event.player
+  local args = strsplit("\s+", event.command)
+  local command_arg = table.remove(args)
+  local cmd = string.lower(command_arg)
 
-    if cmd[1] == "/info" then
+  if cmd == nil then
+    serverLog("No command found on: [" .. event.command .. "]")
+    return
+  end
 
+  if cmd == "info" or cmd == "i" then
 
+    player:sendTextMessage("[#0000FF]" .. rest)
+    player:sendTextMessage("[#0000FF]Long text Long text Long text")
+    player:sendTextMessage("[#0000FF]Long text Long text Long text Long text Long text ")
 
-    end
+  elseif cmd == "welcome" then
+
+    sendWelcomeMessage(player)
+
+  end
 
 --
 --     ___       __          _
@@ -21,27 +31,22 @@ addEvent("PlayerCommand", function(event)
 -- /_/  |_\__,_/_/ /_/ /_/_/_/ /_/
 --
 
-    if event.player:isAdmin() == false then
-      return;
-    end
+  if player:isAdmin() == false then
+    return
+  end
 
-    if cmd[1] == "/createrealm" then
+  if cmd == "createrealm" or cmd == "cr" then
 
-      database:queryupdate([[
-        INSERT INTO realms ('creator_id')
-          VALUES (']] .. event.player:getDBID() .. [[');
-      ]]);
+    player:setAttribute("creatingRealmID",database:insertRealm(player))
 
-      local newRealmId = database:getLastInsertID();
-      event.player:setAttribute("creatingRealmID",newRealmId);
+  elseif cmd == "expandrealm" or cmd == "er" then
 
-    elseif cmd[1] == "/expandrealm" then
+    player:setAttribute("creatingRealmID",player:getAttribute("currentRealmId"))
 
-      local currentRealmId = event.player:getAttribute("currentRealmId");
-      event.player:setAttribute("creatingRealmID",currentRealmId);
+  elseif cmd == "cancelcreaterealm" or cmd == "ccr" then
 
-    end
+    player:setAttribute("creatingRealmID",nil)
 
   end
 
-end);
+end)
